@@ -17,12 +17,14 @@ FOUNDATION_FILES = (
     ("Read-only dry run", "market_data_tracker/fetch.py"),
     ("Raw snapshot storage", "market_data_tracker/raw_store.py"),
     ("Reproducible history builder", "market_data_tracker/history.py"),
+    ("Stock watchlist", "market_data_tracker/config.py"),
+    ("Manual daily collector", "market_data_tracker/collect.py"),
+    ("Collection status generator", "market_data_tracker/status.py"),
 )
 
 PLANNED_COMPONENTS = (
-    "Automated Alpha Vantage data collection",
-    "Daily OHLCV tracking for at least 10 stocks",
-    "Production collection workflow and status tracking",
+    "Scheduled collection and monitoring",
+    "Seven distinct successful collection dates",
     "Financial analytics and visualizations",
     "Website or dashboard",
 )

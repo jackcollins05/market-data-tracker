@@ -90,6 +90,47 @@ The command scans `data/raw`, never calls Alpha Vantage, never reads an existing
 
 On a Saturday or market holiday, `date` can be later than `trading_date`. The row records when the unchanged source bar was observed; it does **not** label Friday's closing price as a new Saturday market close. Market-closure indicators and same-day comparisons are planned for a later phase.
 
+## Manual daily collection and status
+
+The version-controlled watchlist contains 12 U.S. stocks:
+
+| Ticker | Company | Ticker | Company |
+| --- | --- | --- | --- |
+| AAPL | Apple Inc. | MSFT | Microsoft Corp. |
+| NVDA | NVIDIA Corp. | AMZN | Amazon.com Inc. |
+| GOOGL | Alphabet Inc. (Class A) | META | Meta Platforms Inc. |
+| TSLA | Tesla Inc. | JPM | JPMorgan Chase & Co. |
+| BAC | Bank of America Corp. | WMT | Walmart Inc. |
+| XOM | Exxon Mobil Corp. | JNJ | Johnson & Johnson |
+
+Collection occurs only when this command is explicitly invoked from the repository root with `ALPHAVANTAGE_API_KEY` set in the environment:
+
+```sh
+.venv/bin/python -m market_data_tracker.collect
+```
+
+The collector requests each ticker once, waits 15 seconds between attempts, validates the response, and saves each successful original JSON response under the UTC date when that response was collected. It then rebuilds history from raw snapshots and atomically writes `data/status.json`. It makes no automatic retries. A failed ticker does not stop the others or overwrite an earlier good snapshot. A same-day rerun replaces only the successful ticker's snapshot; rebuilding history still produces one row per ticker and observation date. A later failed same-day attempt leaves an earlier valid snapshot in history.
+
+One complete run uses 12 requests. The stated free allowance is 25 requests per day, so two complete runs use 24 requests before accounting for any other API calls. Check your account's current limit before rerunning. A complete run exits successfully; a partial or all-failed run exits with an error. `run_ok` in status is true when at least one snapshot was saved and history and status were rebuilt; `complete` is true only when all 12 tickers succeeded.
+
+`status.json` contains these required fields:
+
+| Field | Definition |
+| --- | --- |
+| `run_time` | UTC completion timestamp of the latest recorded run, in ISO 8601 format |
+| `first_run_date` | Earliest UTC observation date with a valid raw snapshot, or `null` if none |
+| `days_with_success` | Count of distinct UTC dates containing valid raw snapshots |
+| `items` | Number of item IDs in the latest UTC observation date with valid raw snapshots |
+| `new_today` | Sorted item IDs with a valid snapshot on the run's UTC date and no valid snapshot on any earlier UTC date |
+| `gone_today` | Confirmed disappeared item IDs; currently empty because this per-stock API provides no reliable disappearance signal |
+| `sources` | One entry for Alpha Vantage: `name`, `ok` (all 12 succeeded), and `count` (successful tickers in this run) |
+
+Additional `failures` entries identify the ticker, sanitized failure category and message, and HTTP status when available. Partial runs can leave `items` at 12 when an earlier valid same-day snapshot survives a failed retry; `sources.count` still reports only successes from the latest run. On weekends and holidays, a new UTC observation can carry the prior trading day's bar. The collector does not calculate a new market-session movement from that unchanged bar.
+
+On the first successful observation date, every stock successfully observed that day appears in `new_today`. On later dates, an item appears there only on its first date with a valid raw snapshot. This measures **first observation by this project**, not a new exchange listing. A stock that was already observed, then failed, then recovered is not new again. Rebuilding status from the same valid raw snapshots gives the same item movement on a same-day rerun; a failed retry does not erase an earlier successful observation. A weekend or holiday response with the same ticker and an older trading date does not create a new item. `gone_today` remains empty until a future source can establish absence independently of timeout, rate limits, malformed responses, or other per-ticker failures.
+
+This milestone has no scheduler, automatic retries, discovery of new or delisted stocks, or authoritative disappearance signal. The seven required distinct successful collection dates must be achieved through future explicit runs or scheduling work; no production collection is performed by tests.
+
 Run the tests with pytest:
 
 ```sh
@@ -102,9 +143,9 @@ The original health-check tests can also run without pytest using `python3 -m un
 
 1. **Foundation (current):** package structure, documentation, health check, and tests.
 2. **Source adapter (current):** read and validate one symbol through an isolated dry run.
-3. **Data collection:** schedule or run updates for at least 10 stocks within API limits.
-4. **Data management (current offline milestone):** store raw snapshots and rebuild reproducible history; incremental collection is still planned.
+3. **Manual data collection (current):** collect the 12-stock watchlist once per explicit invocation and report status.
+4. **Data management (current):** store raw snapshots and rebuild reproducible history.
 5. **Analysis:** calculate and present useful financial metrics and visualizations.
 6. **Presentation:** build a website or dashboard after the data and analysis layers are established.
 
-The production collection pipeline, automated updates, status tracking, analytics, and website are not implemented in this phase. The new storage and history modules have no production data yet. No market data or API credentials are included in the repository.
+Automated scheduling, monitoring, analytics, and the website are not implemented in this phase. No market data or API credentials are included in the repository.

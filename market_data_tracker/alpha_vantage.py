@@ -7,7 +7,7 @@ import socket
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, quote_plus, urlencode
 from urllib.request import Request, urlopen
@@ -140,8 +140,8 @@ def normalize_daily(symbol: str, payload: Any, http_status: int, api_key: str) -
     )
 
 
-def fetch_latest_daily(symbol: str) -> DailyRecord:
-    """Make one compact HTTPS request and return the latest normalized record."""
+def fetch_latest_daily_with_raw(symbol: str) -> Tuple[DailyRecord, bytes]:
+    """Make one compact HTTPS request; return the record and original JSON bytes."""
     if not isinstance(symbol, str) or not SYMBOL_PATTERN.fullmatch(symbol.strip()):
         raise AlphaVantageError("invalid_symbol", "Enter a valid stock ticker.")
     symbol = symbol.strip().upper()
@@ -179,4 +179,10 @@ def fetch_latest_daily(symbol: str) -> DailyRecord:
         payload = json.loads(body)
     except (ValueError, UnicodeError, TypeError):
         raise AlphaVantageError("invalid_json", "Alpha Vantage returned invalid JSON.", http_status) from None
-    return normalize_daily(symbol, payload, http_status, api_key)
+    return normalize_daily(symbol, payload, http_status, api_key), body
+
+
+def fetch_latest_daily(symbol: str) -> DailyRecord:
+    """Keep the existing read-only adapter interface for the dry-run command."""
+    record, _raw_json = fetch_latest_daily_with_raw(symbol)
+    return record
