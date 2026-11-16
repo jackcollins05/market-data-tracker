@@ -15,12 +15,14 @@ FOUNDATION_FILES = (
     ("Health-check tests", "tests/test_health.py"),
     ("Alpha Vantage source adapter", "market_data_tracker/alpha_vantage.py"),
     ("Read-only dry run", "market_data_tracker/fetch.py"),
+    ("Raw snapshot storage", "market_data_tracker/raw_store.py"),
+    ("Reproducible history builder", "market_data_tracker/history.py"),
 )
 
 PLANNED_COMPONENTS = (
     "Automated Alpha Vantage data collection",
     "Daily OHLCV tracking for at least 10 stocks",
-    "Data validation and storage",
+    "Production collection workflow and status tracking",
     "Financial analytics and visualizations",
     "Website or dashboard",
 )
