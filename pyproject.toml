@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market-data-tracker"
+version = "0.1.0"
+description = "Foundation for a graduate financial data analytics project"
+readme = "README.md"
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = ["pytest>=7,<9"]
+
+[tool.setuptools.packages.find]
+include = ["market_data_tracker*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
