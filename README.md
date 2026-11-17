@@ -63,7 +63,7 @@ data/
   history.csv
 ```
 
-`raw_store.save_snapshot` accepts original JSON bytes, a ticker, a UTC observation date, and a data directory. It makes no network request. It validates the response before writing, then atomically replaces only that stock's file when rerun on the same UTC date. Existing snapshots from earlier dates are immutable. A validation or write failure leaves an existing good snapshot intact. The current dry-run command remains read-only; no production collection workflow calls the storage function yet.
+`raw_store.save_snapshot` accepts original JSON bytes, a ticker, a UTC observation date, and a data directory. It makes no network request. It validates the response before writing, then atomically replaces only that stock's file when rerun on the same UTC date. Existing snapshots from earlier dates are immutable. A validation or write failure leaves an existing good snapshot intact. The one-symbol dry-run command remains read-only; the separately gated daily workflow calls the 12-stock collector.
 
 The full JSON response is preserved in gzip form. For history, the builder uses the optional `Meta Data` symbol for consistency checking and the `Time Series (Daily)` object. It selects the latest trading date **on or before** the snapshot folder's observation date, then reads `1. open`, `2. high`, `3. low`, `4. close`, and `5. volume` from that one bar. Other trading bars remain in raw JSON but do not become rows for that observation date. Corrupt or invalid snapshots stop the rebuild; an existing `history.csv` remains intact.
 
@@ -88,7 +88,7 @@ The command scans `data/raw`, never calls Alpha Vantage, never reads an existing
 | `volume` | Shares traded on `trading_date` | Shares |
 | `trading_date` | Source date of the selected daily bar | YYYY-MM-DD |
 
-On a Saturday or market holiday, `date` can be later than `trading_date`. The row records when the unchanged source bar was observed; it does **not** label Friday's closing price as a new Saturday market close. Market-closure indicators and same-day comparisons are planned for a later phase.
+On a Saturday or market holiday, `date` can be later than `trading_date`. The row records when the unchanged source bar was observed; it does **not** label Friday's closing price as a new Saturday market close. The daily Issue reporter explicitly distinguishes an unchanged source trading date from a new trading-day movement.
 
 ## Manual daily collection and status
 
@@ -129,7 +129,38 @@ Additional `failures` entries identify the ticker, sanitized failure category an
 
 On the first successful observation date, every stock successfully observed that day appears in `new_today`. On later dates, an item appears there only on its first date with a valid raw snapshot. This measures **first observation by this project**, not a new exchange listing. A stock that was already observed, then failed, then recovered is not new again. Rebuilding status from the same valid raw snapshots gives the same item movement on a same-day rerun; a failed retry does not erase an earlier successful observation. A weekend or holiday response with the same ticker and an older trading date does not create a new item. `gone_today` remains empty until a future source can establish absence independently of timeout, rate limits, malformed responses, or other per-ticker failures.
 
-This milestone has no scheduler, automatic retries, discovery of new or delisted stocks, or authoritative disappearance signal. The seven required distinct successful collection dates must be achieved through future explicit runs or scheduling work; no production collection is performed by tests.
+The collector has no automatic retry loop, discovery of new or delisted stocks, or authoritative disappearance signal. No production collection is performed by tests. The daily workflow remains gated until separately approved for production.
+
+## Daily GitHub Issue report
+
+Preview the report locally using **only** `data/history.csv` and `data/status.json`:
+
+```sh
+.venv/bin/python -m market_data_tracker.issues --data-dir /path/to/isolated/data
+```
+
+Preview is the default mode. It does not read `GITHUB_TOKEN` or make a GitHub request. `--publish` is the explicit publishing mode; it requires `GITHUB_TOKEN` and an `owner/name` from `--repo` or `GITHUB_REPOSITORY`. Do not pass a token on the command line. The publisher uses a fixed title prefix, `[market-data-tracker:daily]`, and a hidden body marker to identify its own Issues. It updates the identified same-date Issue, creates one if absent, and closes only the identified previous **calendar** day's open Issue. A duplicate identified same-date Issue stops publishing for manual review. Unrelated Issues and pull requests are never modified. API failures report the HTTP status and a safe action hint without echoing response bodies or credentials.
+
+The movement rule is auditable: compare each ticker's latest row with its most recent earlier **valid UTC observation** for that same ticker; include a price move only when the source `trading_date` advanced. Calculate signed percentage change as `(latest close - previous close) / previous close × 100`, rank by absolute percentage change, break ties by ticker, and show the largest five. The report shows both closing prices and both source trading dates. A zero or absent previous close cannot yield a percentage change and is shown separately. An unchanged source trading date is labeled as a market-closed day or no new source bar; the report still appears even if no stock has a new trading bar. The first day states that there is no prior comparison. The report lists source successes and failures, newly observed tickers, and confirmed disappearances from status. Failed API calls never become disappearances; the current per-ticker source cannot confirm a delisting, so `gone_today` remains empty in normal collection.
+
+## GitHub Actions deployment design
+
+`.github/workflows/tests.yml` runs offline pytest and the health check on every push and pull request. It uses Python 3.11 and installs `.[dev]` from `pyproject.toml`; it needs no API key. Once the workflow exists on GitHub, a README badge can point to `https://github.com/OWNER/REPOSITORY/actions/workflows/tests.yml/badge.svg` after replacing the owner and repository placeholders.
+
+`.github/workflows/daily.yml` has two daily UTC schedules, a manual recovery trigger, and one concurrency group. It runs offline tests first, checks the target UTC date, and verifies whether a complete collection already exists. A successful same-date collection causes the later run to skip Alpha Vantage and only repair/update the Issue. A partial collection can be followed by the one backup attempt. The collector has no automatic API retry loop. For new data, the workflow rebuilds `history.csv` from raw snapshots, verifies the status date and raw/history consistency, previews the report offline, and stages only `data/raw/**`, `data/history.csv`, and `data/status.json`. It checks the staged diff and Git status, commits and pushes that generated data to the configured production branch, then publishes the same-date Issue. A partial collection is reported and leaves the run failed for investigation. A GitHub-token-authored data push does not trigger another GitHub Actions push run under GitHub's normal event rules.
+
+| Run | UTC | Central Standard Time | Central Daylight Time |
+| --- | --- | --- | --- |
+| Primary | 22:17 daily | 16:17 | 17:17 |
+| Backup | 23:31 daily | 17:31 | 18:31 |
+
+Both times are after the regular U.S. stock trading session. GitHub may delay or drop scheduled runs, so the workflow checks the **current UTC date** immediately before collection and publishing and skips scheduled runs outside their UTC windows. Collection starts no later than 23:44 UTC, leaving a buffer before midnight. The two runs cannot overlap because of the concurrency group. A delayed primary and backup both evaluate the stored complete status before any collection. Each complete run uses 12 Alpha Vantage requests; at most two scheduled runs can collect on one UTC date, totaling 24 against the documented 25-request daily free allowance. This assumes no other client uses that key that day. Manual collection requires the `quota_confirmed` input after checking account usage; manual report-only recovery makes no market-data requests. A manual run should be started after the market close and on the intended UTC date. No automatic retry loop is configured.
+
+**Activation is a separate production decision.** Scheduled workflows run from the repository's default branch after the workflow is merged there. The daily job additionally requires repository variables `MARKET_DATA_AUTOMATION_ENABLED=true` and `MARKET_DATA_PRODUCTION_BRANCH` set to the approved production branch; until then it skips. Configure `ALPHAVANTAGE_API_KEY` as a GitHub Actions repository secret only at deployment. The daily workflow grants `contents: write` to commit generated data and `issues: write` to manage its marked Issues; the tests workflow grants only `contents: read`. Repository and branch protection settings must permit the selected production branch update by `GITHUB_TOKEN`. The project never stores an API key or token in the repository. **Public redistribution permission for Alpha Vantage and exchange market data remains a production-launch checkpoint.**
+
+To inspect a failed scheduled run, open its Actions log, identify the first failing step, and check whether it was skipped by the UTC window, lacked the secret or permissions, had invalid raw/history/status data, hit a source error or rate limit, or failed to push or publish. The Issue reporter omits credential-bearing source messages. Inspect `data/status.json` and the dated raw snapshots on the approved branch. If a complete valid collection exists, use manual `collect=false` to repair the Issue without spending API requests. If incomplete, check the account's remaining daily quota before a manual `collect=true` recovery, or wait for the next scheduled UTC date. Never repeat a 12-request collection blindly.
+
+The seven-day requirement is measured by `days_with_success` in `data/status.json`: seven **distinct UTC observation dates with valid snapshots**, not seven trading dates and not seven runs on one day. The Issue shows progress as `n/7`. Before declaring the requirement met, inspect the raw dated directories, rebuild history, verify status, and ensure at least seven distinct dates have genuine successful source responses. Scheduled workflows and production data have not been activated or generated in this repository yet.
 
 Run the tests with pytest:
 
@@ -148,4 +179,4 @@ The original health-check tests can also run without pytest using `python3 -m un
 5. **Analysis:** calculate and present useful financial metrics and visualizations.
 6. **Presentation:** build a website or dashboard after the data and analysis layers are established.
 
-Automated scheduling, monitoring, analytics, and the website are not implemented in this phase. No market data or API credentials are included in the repository.
+The daily Issue reporter and gated workflow definitions are implemented and tested offline. Production activation, analytics, and the website remain future work. No market data or API credentials are included in the repository.

@@ -20,10 +20,14 @@ FOUNDATION_FILES = (
     ("Stock watchlist", "market_data_tracker/config.py"),
     ("Manual daily collector", "market_data_tracker/collect.py"),
     ("Collection status generator", "market_data_tracker/status.py"),
+    ("Daily GitHub Issue reporter", "market_data_tracker/issues.py"),
+    ("Issue reporter tests", "tests/test_issues.py"),
+    ("Push and pull request tests workflow", ".github/workflows/tests.yml"),
+    ("Gated daily workflow", ".github/workflows/daily.yml"),
 )
 
 PLANNED_COMPONENTS = (
-    "Scheduled collection and monitoring",
+    "Production activation of scheduled collection",
     "Seven distinct successful collection dates",
     "Financial analytics and visualizations",
     "Website or dashboard",

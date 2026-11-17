@@ -1,0 +1,137 @@
+name: Daily stock collection
+
+on:
+  schedule:
+    # 22:17 UTC = 16:17 CST / 17:17 CDT; after the U.S. regular session.
+    - cron: '17 22 * * *'
+    # 23:31 UTC = 17:31 CST / 18:31 CDT; same UTC date backup.
+    - cron: '31 23 * * *'
+  workflow_dispatch:
+    inputs:
+      collect:
+        description: 'Collect data (false republishes an already verified daily report)'
+        type: boolean
+        required: true
+        default: false
+      quota_confirmed:
+        description: 'I verified that 12 more Alpha Vantage requests fit today’s allowance'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: market-data-tracker-production
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    # Set both repository variables only after approving production deployment.
+    if: vars.MARKET_DATA_AUTOMATION_ENABLED == 'true' && vars.MARKET_DATA_PRODUCTION_BRANCH != ''
+    runs-on: ubuntu-latest
+    env:
+      PRODUCTION_BRANCH: ${{ vars.MARKET_DATA_PRODUCTION_BRANCH }}
+      EVENT_NAME: ${{ github.event_name }}
+      SCHEDULE_CRON: ${{ github.event.schedule }}
+      MANUAL_COLLECT: ${{ inputs.collect }}
+      QUOTA_CONFIRMED: ${{ inputs.quota_confirmed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ vars.MARKET_DATA_PRODUCTION_BRANCH }}
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install project and test dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Run offline tests before collection
+        run: python -m pytest -q
+      - name: Decide whether this UTC date needs collection
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "$PRODUCTION_BRANCH"
+          test -z "$(git status --porcelain)"
+          run_date="$(date -u +%F)"
+          echo "run_date=$run_date" >> "$GITHUB_OUTPUT"
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+            action="$(python -m market_data_tracker.issues --gate --date "$run_date" --schedule "$SCHEDULE_CRON")"
+          fi
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            gate_args=(--gate --date "$run_date")
+            if [[ "$MANUAL_COLLECT" == 'true' ]]; then gate_args+=(--manual-collect); fi
+            if [[ "$QUOTA_CONFIRMED" == 'true' ]]; then gate_args+=(--quota-confirmed); fi
+            action="$(python -m market_data_tracker.issues "${gate_args[@]}")"
+          fi
+          echo "action=$action" >> "$GITHUB_OUTPUT"
+      - name: Collect each configured stock once
+        if: steps.gate.outputs.action == 'collect'
+        id: collection
+        shell: bash
+        env:
+          ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
+        run: |
+          set +e
+          python -m market_data_tracker.collect
+          result=$?
+          echo "exit_code=$result" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Rebuild and verify generated data
+        if: steps.gate.outputs.action == 'collect'
+        shell: bash
+        env:
+          RUN_DATE: ${{ steps.gate.outputs.run_date }}
+        run: |
+          set -euo pipefail
+          test "$(date -u +%F)" = "$RUN_DATE"
+          python -m market_data_tracker.history
+          python -m market_data_tracker.issues --verify-data --date "$RUN_DATE"
+          python -m market_data_tracker.issues > /dev/null
+      - name: Commit only generated data
+        if: steps.gate.outputs.action == 'collect'
+        shell: bash
+        env:
+          RUN_DATE: ${{ steps.gate.outputs.run_date }}
+        run: |
+          set -euo pipefail
+          test "$(date -u +%F)" = "$RUN_DATE"
+          git add -- data/raw data/history.csv data/status.json
+          git diff --cached --check
+          python - <<'PY'
+          import subprocess
+          paths = subprocess.check_output(['git', 'diff', '--cached', '--name-only', '-z']).decode().rstrip('\0').split('\0')
+          if not paths or not all(p.startswith('data/raw/') or p in ('data/history.csv', 'data/status.json') for p in paths):
+              raise SystemExit('Staged diff contains unexpected files or no generated data.')
+          status = subprocess.check_output(['git', 'status', '--porcelain', '-z']).decode().rstrip('\0').split('\0')
+          if any(entry[:2] not in ('A ', 'M ', 'D ') or entry[3:] not in paths for entry in status):
+              raise SystemExit('Git status contains unstaged or unexpected files.')
+          print('Verified generated-data-only staged diff:', len(paths), 'files')
+          PY
+          git -c user.name='market-data-tracker[bot]' -c user.email='market-data-tracker[bot]@users.noreply.github.com' commit -m "Collect stock observations for $RUN_DATE"
+          git push origin "HEAD:$PRODUCTION_BRANCH"
+          test -z "$(git status --porcelain)"
+      - name: Verify daily report data
+        if: steps.gate.outputs.action == 'report'
+        env:
+          RUN_DATE: ${{ steps.gate.outputs.run_date }}
+        run: python -m market_data_tracker.issues --verify-data --date "$RUN_DATE"
+      - name: Create or update this UTC day's project Issue
+        if: steps.gate.outputs.action == 'collect' || steps.gate.outputs.action == 'report'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_DATE: ${{ steps.gate.outputs.run_date }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(date -u +%F)" = "$RUN_DATE"
+          python -m market_data_tracker.issues --publish
+      - name: Mark an incomplete collection as failed after reporting it
+        if: steps.gate.outputs.action == 'collect' && steps.collection.outputs.exit_code != '0'
+        run: |
+          echo 'One or more stock requests failed; generated data and Issue contain the partial result.' >&2
+          exit 1
