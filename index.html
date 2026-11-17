@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a111b">
+  <meta name="description" content="Market Data Tracker: daily stock observations, market activity, and historical analytics.">
+  <title>Today · Market Data Tracker</title>
+  <link rel="stylesheet" href="assets/css/site.css">
+  <script type="module" src="assets/js/app.js"></script>
+</head>
+<body data-page="today">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="index.html" aria-label="Market Data Tracker home"><span class="brand-mark" aria-hidden="true">M<span>↗</span></span><span>MARKET DATA <strong>TRACKER</strong></span></a>
+      <nav aria-label="Main navigation" class="main-nav">
+        <a href="index.html" data-nav="today" aria-current="page">TODAY</a>
+        <a href="browse.html" data-nav="browse">BROWSE</a>
+        <a href="trends.html" data-nav="trends">TRENDS</a>
+      </nav>
+      <span class="header-tag">FINANCIAL DATA ANALYTICS</span>
+    </div>
+  </header>
+  <div class="demo-banner" id="demo-banner" hidden><div class="shell"><strong>DEMO DATA — NOT LIVE</strong><span>Synthetic observations for interface review only.</span></div></div>
+  <main id="main" class="shell page-content">
+    <div id="data-message" role="status" aria-live="polite"></div>
+    <section class="page-hero" aria-labelledby="page-title">
+      <div><p class="eyebrow">THE DAILY BRIEF · UTC OBSERVATION</p><h1 id="page-title">Market overview<span class="accent">.</span></h1><p class="hero-subtitle">Stocks | Market Activity | Historical Analytics</p></div>
+      <div id="freshness" class="freshness-card" aria-live="polite"><span class="freshness-dot"></span><span>Loading data status…</span></div>
+    </section>
+    <section id="today-content" hidden>
+      <div class="date-strip" aria-label="Observation and trading dates">
+        <div><span class="mini-label">LATEST SUCCESSFUL RUN</span><strong id="run-time">—</strong></div>
+        <div><span class="mini-label">UTC OBSERVATION DATE</span><strong id="observation-date">—</strong></div>
+        <div><span class="mini-label">MOST RECENT TRADING DATE</span><strong id="trading-date">—</strong></div>
+      </div>
+      <p class="subtle date-explainer">An observation is when data was collected. A trading date is the market session represented by the latest source bar; they may differ on weekends and holidays.</p>
+      <section class="section-space" aria-labelledby="summary-heading"><div class="section-heading"><div><p class="eyebrow">AT A GLANCE</p><h2 id="summary-heading">Collection pulse</h2></div><span class="section-note">Status and history</span></div><div id="summary-metrics" class="metric-grid"></div></section>
+      <section class="section-space" aria-labelledby="overview-heading"><div class="section-heading"><div><p class="eyebrow">THE WATCHLIST</p><h2 id="overview-heading">Market overview</h2></div><span id="overview-count" class="section-note"></span></div><div class="panel"><div class="table-scroll"><table class="market-table"><caption class="sr-only">Latest available stock values and changes versus previous observations</caption><thead><tr><th scope="col">Company / ticker</th><th scope="col">Open</th><th scope="col">Close</th><th scope="col">High</th><th scope="col">Low</th><th scope="col">Volume</th><th scope="col">Change</th><th scope="col">Observation</th></tr></thead><tbody id="overview-body"></tbody></table></div></div><p class="subtle table-footnote">Change compares closing prices only when the source trading date advanced. An unchanged bar is not a new market move.</p></section>
+      <section class="section-space" aria-labelledby="movers-heading"><div class="section-heading"><div><p class="eyebrow">PRICE ACTION</p><h2 id="movers-heading">Biggest movers</h2></div><span class="section-note">New trading bars only</span></div><div class="two-column"><div class="panel move-panel"><h3>Largest advances <span class="positive">↗</span></h3><div id="gainers"></div></div><div class="panel move-panel"><h3>Largest declines <span class="negative">↘</span></h3><div id="decliners"></div></div></div><p class="subtle methodology">Method: (latest close − previous recorded close) ÷ previous recorded close × 100, only when the stock has a newer trading date. Stocks without a comparable prior close are excluded.</p></section>
+      <section class="section-space" aria-labelledby="sources-heading"><div class="section-heading"><div><p class="eyebrow">DATA OPERATIONS</p><h2 id="sources-heading">Source monitoring</h2></div><span class="section-note">Authoritative latest-run status</span></div><div id="source-list" class="source-grid"></div><p id="source-explainer" class="subtle"></p></section>
+    </section>
+  </main>
+  <footer class="site-footer"><div class="shell"><span>MARKET DATA TRACKER · GRADUATE FINANCIAL DATA ANALYTICS</span><span>All times and observation dates use UTC. Market values are historical, not investment advice.</span></div></footer>
+</body>
+</html>

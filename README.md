@@ -170,13 +170,31 @@ Run the tests with pytest:
 
 The original health-check tests can also run without pytest using `python3 -m unittest discover -s tests -v`. The adapter tests require pytest.
 
+## Website: Today, Browse, and Trends
+
+The static website uses `index.html` (Today), `browse.html`, and `trends.html`, with shared vanilla JavaScript and locally stored CSS. Production pages fetch `data/history.csv` and `data/status.json` using relative paths, so they can run under a GitHub Pages project path without a build step. The website does not call Alpha Vantage or any other market API. Until real collection data is approved and published, normal mode shows a clear unavailable-data message instead of fabricated metrics.
+
+To preview the site from the repository root, run:
+
+```sh
+python3 -m http.server 8000
+```
+
+Then open **http://localhost:8000/index.html?demo=1**. The `?demo=1` query loads only `tests/fixtures/site_demo/history.csv` and `tests/fixtures/site_demo/status.json`. A persistent **DEMO DATA — NOT LIVE** banner appears on every page, and the Today/Browse/Trends links preserve demonstration mode. The fixture values and one simulated failed stock request are synthetic. Do not copy these files into `data/`. Browser `fetch()` needs an HTTP server; opening the HTML through `file://` is not a supported preview method. Stop the server with Ctrl+C.
+
+Today distinguishes the UTC observation date from the source trading date, shows operational counts from `status.json`, and uses history rows for OHLCV values and price comparisons. The watchlist includes older available values when the latest request failed, visibly marked as such. The dashboard separates configured stocks, valid latest-date snapshots, latest-run request successes, and complete versus incomplete source runs. A repeated weekend or holiday bar is labeled **No new bar** and cannot appear as a new price move. Browse supports company/ticker search, independent closing-price and observation-status filters, ascending/descending sort on all five numeric fields, and a browser-local favorites shortlist. Sector/category is shown as **Not supplied** because the backend CSV has no reliable sector field. Favorites fall back to session memory when browser storage is unavailable.
+
+Trends renders opening, high, low, closing, and volume charts for selected stocks using native SVG. Browser calculations deduplicate repeated observations of the same source `trading_date` per ticker. The four findings are: first-to-latest closing performance, sample standard deviation of consecutive closing returns, largest absolute consecutive-session volume change, and average `(high − low) / open × 100` intraday range. Each section displays its specific inputs, method, result, and chart; unavailable denominators or insufficient sessions produce explanations instead of invented numbers. Prices use USD per share and volume uses shares.
+
+The website's test checks validate the actual backend CSV/status contract, synthetic weekend behavior, page links and controls, relative fetch paths, and pure JavaScript calculations when a JavaScript runtime is available. Browser layout, keyboard interaction, and local storage should also be checked in a real browser before production launch. Public market-data redistribution permission remains a separate production checkpoint. A generated-data push made with `GITHUB_TOKEN` does not itself trigger a GitHub Pages build; production site deployment needs its own approved publishing path.
+
 ## Planned features and phases
 
 1. **Foundation (current):** package structure, documentation, health check, and tests.
 2. **Source adapter (current):** read and validate one symbol through an isolated dry run.
 3. **Manual data collection (current):** collect the 12-stock watchlist once per explicit invocation and report status.
 4. **Data management (current):** store raw snapshots and rebuild reproducible history.
-5. **Analysis:** calculate and present useful financial metrics and visualizations.
-6. **Presentation:** build a website or dashboard after the data and analysis layers are established.
+5. **Analysis (initial website complete):** calculate browser-side findings and visualizations from history CSV.
+6. **Presentation (initial website complete):** three responsive static pages with a clearly labeled synthetic demonstration mode.
 
-The daily Issue reporter and gated workflow definitions are implemented and tested offline. Production activation, analytics, and the website remain future work. No market data or API credentials are included in the repository.
+The daily Issue reporter, gated workflows, and initial website are implemented locally. Production activation and real-data website publication remain future work. No production market data or API credentials are included in the repository.

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a111b">
+  <meta name="description" content="Search, filter, sort, and shortlist the Market Data Tracker stock watchlist.">
+  <title>Browse · Market Data Tracker</title>
+  <link rel="stylesheet" href="assets/css/site.css">
+  <script type="module" src="assets/js/app.js"></script>
+</head>
+<body data-page="browse">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner"><a class="brand" href="index.html" aria-label="Market Data Tracker home"><span class="brand-mark" aria-hidden="true">M<span>↗</span></span><span>MARKET DATA <strong>TRACKER</strong></span></a><nav aria-label="Main navigation" class="main-nav"><a href="index.html" data-nav="today">TODAY</a><a href="browse.html" data-nav="browse" aria-current="page">BROWSE</a><a href="trends.html" data-nav="trends">TRENDS</a></nav><span class="header-tag">FINANCIAL DATA ANALYTICS</span></div></header>
+  <div class="demo-banner" id="demo-banner" hidden><div class="shell"><strong>DEMO DATA — NOT LIVE</strong><span>Synthetic observations for interface review only.</span></div></div>
+  <main id="main" class="shell page-content">
+    <div id="data-message" role="status" aria-live="polite"></div>
+    <section class="page-hero" aria-labelledby="page-title"><div><p class="eyebrow">THE STOCK EXPLORER</p><h1 id="page-title">Find your signal<span class="accent">.</span></h1><p class="hero-subtitle">Search the watchlist. Compare the numbers. Keep a shortlist.</p></div><div class="hero-side"><span class="mini-label">LATEST UTC OBSERVATION</span><strong id="browse-date">—</strong><span id="browse-freshness" class="subtle">Loading…</span></div></section>
+    <section id="browse-content" hidden>
+      <div class="filter-panel panel" aria-label="Stock filters">
+        <div class="filter-field search-field"><label for="stock-search">SEARCH COMPANY OR TICKER</label><input id="stock-search" type="search" placeholder="Search Apple, AAPL…" autocomplete="off"></div>
+        <div class="filter-field"><label for="price-filter">CLOSING PRICE (USD)</label><select id="price-filter"><option value="all">All closing prices</option><option value="under-100">Under $100</option><option value="100-199">$100 to $199.99</option><option value="200-plus">$200 and above</option><option value="unavailable">Close unavailable</option></select></div>
+        <div class="filter-field"><label for="state-filter">OBSERVATION STATUS</label><select id="state-filter"><option value="all">All statuses</option><option value="Recorded today">Recorded today</option><option value="Failed latest request">Failed latest request</option><option value="No snapshot today">No snapshot today</option></select></div>
+        <label class="favorites-filter"><input id="favorites-only" type="checkbox"><span>★ Favorites only</span></label>
+      </div>
+      <div class="section-heading browse-heading"><div><p class="eyebrow">COMPANY UNIVERSE</p><h2>Browse the watchlist</h2></div><span id="browse-count" class="section-note"></span></div>
+      <div class="panel"><div class="table-scroll"><table class="market-table browse-table"><caption class="sr-only">Stocks with sortable open, high, low, close, and volume columns</caption><thead><tr><th scope="col">Favorite</th><th scope="col">Company / ticker</th><th scope="col">Category</th><th scope="col">Source / status</th><th scope="col"><button class="sort-button" data-sort="open" type="button">Open <span aria-hidden="true">↕</span></button></th><th scope="col"><button class="sort-button" data-sort="high" type="button">High <span aria-hidden="true">↕</span></button></th><th scope="col"><button class="sort-button" data-sort="low" type="button">Low <span aria-hidden="true">↕</span></button></th><th scope="col"><button class="sort-button" data-sort="close" type="button">Close <span aria-hidden="true">↕</span></button></th><th scope="col"><button class="sort-button" data-sort="volume" type="button">Volume <span aria-hidden="true">↕</span></button></th><th scope="col">Trading date</th></tr></thead><tbody id="browse-body"></tbody></table></div><div id="browse-empty" class="empty-state" hidden>No stocks match these filters. Try a different company, closing price, or observation status.</div></div>
+      <p class="subtle table-footnote">Category is not supplied by the market-data source and is shown as unavailable. Closing price and observation status are independent filters. Stars are stored in this browser when local storage is available. <span id="storage-note" role="status" aria-live="polite"></span></p>
+    </section>
+  </main>
+  <footer class="site-footer"><div class="shell"><span>MARKET DATA TRACKER · GRADUATE FINANCIAL DATA ANALYTICS</span><span>All times and observation dates use UTC. Market values are historical, not investment advice.</span></div></footer>
+</body>
+</html>

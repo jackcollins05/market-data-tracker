@@ -1,0 +1,29 @@
+{
+  "run_time": "2026-11-16T22:32:00Z",
+  "first_run_date": "2026-11-10",
+  "days_with_success": 6,
+  "items": 11,
+  "new_today": [
+    "JNJ"
+  ],
+  "gone_today": [],
+  "sources": [
+    {
+      "name": "Alpha Vantage",
+      "ok": false,
+      "count": 11
+    }
+  ],
+  "run_ok": true,
+  "complete": false,
+  "observation_date_utc": "2026-11-16",
+  "failures": [
+    {
+      "item_id": "XOM",
+      "category": "rate_limit",
+      "http_status": 429,
+      "message": "Synthetic demonstration failure."
+    }
+  ],
+  "demo": true
+}

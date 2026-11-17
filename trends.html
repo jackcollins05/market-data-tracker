@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a111b">
+  <meta name="description" content="Interactive stock price, volume, and trading-session analytics from historical CSV data.">
+  <title>Trends · Market Data Tracker</title>
+  <link rel="stylesheet" href="assets/css/site.css">
+  <script type="module" src="assets/js/app.js"></script>
+</head>
+<body data-page="trends">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell header-inner"><a class="brand" href="index.html" aria-label="Market Data Tracker home"><span class="brand-mark" aria-hidden="true">M<span>↗</span></span><span>MARKET DATA <strong>TRACKER</strong></span></a><nav aria-label="Main navigation" class="main-nav"><a href="index.html" data-nav="today">TODAY</a><a href="browse.html" data-nav="browse">BROWSE</a><a href="trends.html" data-nav="trends" aria-current="page">TRENDS</a></nav><span class="header-tag">FINANCIAL DATA ANALYTICS</span></div></header>
+  <div class="demo-banner" id="demo-banner" hidden><div class="shell"><strong>DEMO DATA — NOT LIVE</strong><span>Synthetic observations for interface review only.</span></div></div>
+  <main id="main" class="shell page-content">
+    <div id="data-message" role="status" aria-live="polite"></div>
+    <section class="page-hero" aria-labelledby="page-title"><div><p class="eyebrow">THE HISTORICAL LENS</p><h1 id="page-title">Read the trend<span class="accent">.</span></h1><p class="hero-subtitle">Five market measures. Four findings. Every calculation from history.csv in your browser.</p></div><div class="hero-side"><span class="mini-label">HISTORY COVERAGE</span><strong id="history-span">—</strong><span id="session-count" class="subtle">Loading…</span><span id="trends-freshness" class="subtle"></span></div></section>
+    <section id="trends-content" hidden>
+      <section class="panel selector-panel" aria-labelledby="selector-title"><div><p class="eyebrow">CHART CONTROLS</p><h2 id="selector-title">Choose stocks</h2><p class="subtle">Select one or several stocks to compare source trading sessions. Weekend copies of the same bar appear only once.</p></div><div class="selector-actions"><button id="select-all" type="button" class="text-button">Select all</button><button id="clear-all" type="button" class="text-button">Clear</button></div><div id="stock-selector" class="stock-selector" role="group" aria-label="Stocks shown in historical charts"></div></section>
+      <section class="section-space" aria-labelledby="charts-heading"><div class="section-heading"><div><p class="eyebrow">HISTORICAL MARKET DATA</p><h2 id="charts-heading">Price & volume charts</h2></div><span class="section-note">Distinct source trading sessions</span></div><div id="history-charts" class="chart-stack"></div></section>
+      <section class="section-space" aria-labelledby="findings-heading"><div class="section-heading"><div><p class="eyebrow">ANALYSIS FROM HISTORY.CSV</p><h2 id="findings-heading">Four analytical findings</h2></div><span class="section-note">Recomputed when history grows</span></div><p class="subtle finding-intro">These results use the latest valid observation for each ticker and source trading date, so repeated weekend bars are counted once. Findings use all stocks in the loaded history, independently of the chart selection.</p><div id="findings" class="findings-grid"></div></section>
+    </section>
+  </main>
+  <footer class="site-footer"><div class="shell"><span>MARKET DATA TRACKER · GRADUATE FINANCIAL DATA ANALYTICS</span><span>All times and observation dates use UTC. Market values are historical, not investment advice.</span></div></footer>
+</body>
+</html>
